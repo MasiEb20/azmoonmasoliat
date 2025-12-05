@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>مرتب‌کردن اتاق بی‌نظم</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      background-color: #0c0c0c;
+      color: #00ff99;
+      overflow: hidden;
+      height: 100vh;
+      text-shadow: 0 0 5px #00ff99, 0 0 10px #00ff99;
+      position: relative;
+    }
+
+    .container {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .header {
+      text-align: center;
+      padding: 10px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .timer {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 15px;
+      border-radius: 20px;
+      border: 1px solid #00ff99;
+      box-shadow: 0 0 10px #00ff99;
+    }
+
+    .stage-info {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 15px;
+      border-radius: 20px;
+      border: 1px solid #00ff99;
+      box-shadow: 0 0 10px #00ff99;
+    }
+
+    #items-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(0, 20, 20, 0.5);
+      border-bottom: 2px solid #00ff99;
+      min-height: 80px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    #items-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .item {
+      background: #1a1a1a;
+      border: 2px solid #00ff99;
+      border-radius: 10px;
+      padding: 8px 12px;
+      text-align: center;
+      cursor: grab;
+      user-select: none;
+      min-width: 75px;
+      transition: transform 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 5px rgba(0, 255, 153, 0.3);
+    }
+
+    .item.dragging {
+      opacity: 0.7;
+      transform: scale(1.1);
+      z-index: 1000;
+      position: fixed;
+    }
+
+    .item.correct {
+      opacity: 0.5;
+      pointer-events: none;
+      border-color: #00cc77;
+      box-shadow: 0 0 10px #00cc77;
+    }
+
+    .item-icon {
+      font-size: 1.5rem;
+      margin-bottom: 5px;
+    }
+
+    .item-name {
+      font-size: 0.8rem;
+    }
+
+    #room {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #0a0a0a;
+      border: 3px solid #00ff99;
+      margin: 5px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      padding: 20px;
+    }
+
+    .drop-zone {
+      width: 120px;
+      height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 30, 30, 0.5);
+      border: 3px dashed #00cc77;
+      border-radius: 10px;
+      position: relative;
+      transition: all 0.3s;
+      text-align: center;
+      padding: 5px;
+    }
+
+    .drop-zone.hover {
+      background: rgba(0, 80, 80, 0.3);
+      border-color: #00ffcc;
+      transform: scale(1.05);
+    }
+
+    .drop-zone-icon {
+      font-size: 2rem;
+      margin-bottom: 5px;
+    }
+
+    .drop-zone-label {
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    .drop-zone.correct {
+      background: rgba(0, 100, 100, 0.3);
+      border-style: solid;
+      border-color: #00ff99;
+      box-shadow: 0 0 15px #00ff99;
+    }
+
+    .notification {
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100%);
+      background: rgba(200, 0, 0, 0.8);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: 2px solid #ff0055;
+      box-shadow: 0 0 15px #ff0055;
+      font-weight: bold;
+      z-index: 2000;
+      transition: transform 0.3s;
+    }
+
+    .notification.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(0, 20, 20, 0.8);
+      padding: 10px;
+      text-align: center;
+      font-size: 1rem;
+      border-top: 2px solid #00ff99;
+      z-index: 100;
+    }
+
+    .footer strong {
+      color: #00ffcc;
+      text-shadow: 0 0 5px #00ffcc;
+    }
+
+    .welcome-screen, .game-over-screen, .victory-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(12, 12, 12, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+      text-align: center;
+      opacity: 1;
+      pointer-events: all;
+      transition: opacity 0.5s;
+    }
+
+    .welcome-screen.hidden, .game-over-screen.hidden, .victory-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .welcome-message, .game-over-message, .victory-message {
+      font-size: 2rem;
+      margin-bottom: 30px;
+      text-shadow: 0 0 10px #00ff99, 0 0 20px #00ff99;
+      max-width: 80%;
+      line-height: 1.4;
+    }
+
+    .welcome-message {
+      animation: pulse 2s infinite;
+    }
+
+    .victory-message {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { text-shadow: 0 0 10px #00ff99, 0 0 20px #00ff99; }
+      50% { text-shadow: 0 0 15px #00ff99, 0 0 30px #00ffcc, 0 0 40px #00ff99; }
+      100% { text-shadow: 0 0 10px #00ff99, 0 0 20px #00ff99; }
+    }
+
+    .btn {
+      background: #00ff99;
+      color: #0c0c0c;
+      border: none;
+      border-radius: 30px;
+      padding: 15px 40px;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-shadow: none;
+    }
+
+    .btn:hover {
+      background: #00cc77;
+      transform: scale(1.05);
+      box-shadow: 0 0 15px #00ff99;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    #confetti-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    .shake {
+      animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      .header {
+        font-size: 1.2rem;
+      }
+      
+      .drop-zone {
+        width: 90px;
+        height: 90px;
+      }
+      
+      .item {
+        min-width: 65px;
+        padding: 6px 10px;
+      }
+      
+      .item-icon {
+        font-size: 1.3rem;
+      }
+      
+      .welcome-message, .game-over-message, .victory-message {
+        font-size: 1.5rem;
+      }
+      
+      .btn {
+        padding: 12px 30px;
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">مرتب‌کردن اتاق بی‌نظم</div>
+    <div class="timer">زمان باقی‌مانده: <span id="time">45</span> ثانیه</div>
+    <div class="stage-info">مرحله: <span id="stage">۱</span> از ۳</div>
+    
+    <div id="items-bar"></div>
+    
+    <div id="room">
+      <!-- Drop zones will be added dynamically -->
+    </div>
+    
+    <div class="notification hidden" id="notification">❌ این شیء اینجا نمی‌رود!</div>
+    
+    <div class="welcome-screen" id="welcome-screen">
+      <div class="welcome-message">✨ به بازی «مرتب‌کردن اتاق بی‌نظم» خوش آمدید! ✨<br><br>هدف: اشیاء را به جای درستشان ببرید<br>قبل از اتمام زمان!</div>
+      <button class="btn" id="start-btn">شروع بازی</button>
+    </div>
+    
+    <div class="game-over-screen hidden" id="game-over-screen">
+      <div class="game-over-message">⏰ زمان تمام شد!<br><br>نگران نباش، دوباره امتحان کن!</div>
+      <button class="btn" id="retry-btn">تلاش دوباره</button>
+    </div>
+    
+    <div class="victory-screen hidden" id="victory-screen">
+      <div class="victory-message">✨ اتاقِ تو، شاهکارِ توست! ✨</div>
+      <canvas id="confetti-canvas"></canvas>
+    </div>
+    
+    <div class="footer">نام آموزگار: <strong>معصومه ابراهیمی</strong> / مدرسه غیردولتی <strong>شایان</strong></div>
+  </div>
+
+  <script>
+    // Disable pull-to-refresh and overscroll
+    document.addEventListener('touchmove', function(e) {
+      if (e.touches.length > 1) return;
+      e.preventDefault();
+    }, { passive: false });
+
+    // Global variables
+    let currentStage = 1;
+    let timeLeft = 45;
+    let timer;
+    let items = [];
+    let dropZones = [];
+    let correctItems = 0;
+    let totalItems = 0;
+    let gameActive = false;
+    let audioContext = null;
+    
+    // Initialize the game
+    document.addEventListener('DOMContentLoaded', () => {
+      setupAudio();
+      
+      // Setup buttons
+      document.getElementById('start-btn').addEventListener('click', startGame);
+      document.getElementById('retry-btn').addEventListener('click', restartGame);
+    });
+    
+    function setupAudio() {
+      try {
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (window.AudioContext) {
+          audioContext = new AudioContext();
+        }
+      } catch (e) {
+        console.log("Web Audio API not supported");
+      }
+    }
+    
+    function playSound(type) {
+      if (!audioContext) return;
+      
+      try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        if (type === 'success') {
+          oscillator.frequency.value = 600;
+          oscillator.type = 'sine';
+          gainNode.gain.value = 0.3;
+          oscillator.start();
+          gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+          oscillator.stop(audioContext.currentTime + 0.5);
+        } else if (type === 'error') {
+          oscillator.frequency.value = 200;
+          oscillator.type = 'square';
+          gainNode.gain.value = 0.2;
+          oscillator.start();
+          gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.3);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        }
+      } catch (e) {
+        console.log("Audio error:", e);
+      }
+    }
+    
+    function shuffleArray(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+    
+    function startGame() {
+      document.getElementById('welcome-screen').classList.add('hidden');
+      document.getElementById('game-over-screen').classList.add('hidden');
+      document.getElementById('victory-screen').classList.add('hidden');
+      // Ensure notification is hidden at start
+      document.getElementById('notification').classList.add('hidden');
+      gameActive = true;
+      startStage(1);
+    }
+    
+    function restartGame() {
+      document.getElementById('game-over-screen').classList.add('hidden');
+      document.getElementById('victory-screen').classList.add('hidden');
+      // Ensure notification is hidden at restart
+      document.getElementById('notification').classList.add('hidden');
+      gameActive = true;
+      startStage(1);
+    }
+    
+    function startStage(stage) {
+      if (!gameActive) return;
+      
+      currentStage = stage;
+      document.getElementById('stage').textContent = stage;
+      
+      // Reset counters
+      correctItems = 0;
+      
+      // Clear room and items bar
+      document.getElementById('items-bar').innerHTML = '';
+      document.getElementById('room').innerHTML = '';
+      
+      // Define items and drop zones based on stage
+      if (stage === 1) {
+        timeLeft = 45;
+        totalItems = 3;
+        
+        items = [
+          { id: "sock", name: "جوراب", icon: "🧦", dropZone: "drawer" },
+          { id: "banana", name: "پوست موز", icon: "🍌", dropZone: "bin" },
+          { id: "bag", name: "کیف", icon: "🎒", dropZone: "chair" }
+        ];
+        
+        dropZones = [
+          { id: "drawer", name: "کشو", icon: "🗄️" },
+          { id: "bin", name: "سطل آشغال", icon: "🗑️" },
+          { id: "chair", name: "صندلی", icon: "🪑" }
+        ];
+      } else if (stage === 2) {
+        timeLeft = 60;
+        totalItems = 10;
+        
+        items = [
+          // For drawer (2 items)
+          { id: "sock", name: "جوراب", icon: "🧦", dropZone: "drawer" },
+          { id: "hoodie", name: "کاپشن", icon: "🧥", dropZone: "drawer" },
+          // For bin (2 items)
+          { id: "banana", name: "پوست موز", icon: "🍌", dropZone: "bin" },
+          { id: "trash", name: "آشغال", icon: "🗑️", dropZone: "bin" },
+          // For chair (2 items)
+          { id: "bag", name: "کیف", icon: "🎒", dropZone: "chair" },
+          { id: "toy", name: "اسباب‌بازی", icon: "🧸", dropZone: "chair" },
+          // For sink (2 items)
+          { id: "glass", name: "لیوان آب", icon: "🥛", dropZone: "sink" },
+          { id: "cup", name: "فنجان", icon: "☕", dropZone: "sink" },
+          // For shelf (2 items)
+          { id: "books", name: "کتاب‌ها", icon: "📚", dropZone: "shelf" },
+          { id: "notebook", name: "دفترچه", icon: "📓", dropZone: "shelf" }
+        ];
+        
+        dropZones = [
+          { id: "drawer", name: "کشو", icon: "🗄️" },
+          { id: "bin", name: "سطل آشغال", icon: "🗑️" },
+          { id: "chair", name: "صندلی", icon: "🪑" },
+          { id: "sink", name: "سینک", icon: "🚰" },
+          { id: "shelf", name: "قفسه", icon: "📚" }
+        ];
+      } else {
+        timeLeft = 75;
+        totalItems = 15;
+        
+        items = [
+          // For drawer (3 items)
+          { id: "sock", name: "جوراب", icon: "🧦", dropZone: "drawer" },
+          { id: "hoodie", name: "کاپشن", icon: "🧥", dropZone: "drawer" },
+          { id: "pant", name: "شلوار", icon: "👖", dropZone: "drawer" },
+          // For bin (3 items)
+          { id: "banana", name: "پوست موز", icon: "🍌", dropZone: "bin" },
+          { id: "trash", name: "آشغال", icon: "🗑️", dropZone: "bin" },
+          { id: "paper", name: "کاغذ مچاله", icon: "📄", dropZone: "bin" },
+          // For chair (3 items)
+          { id: "bag", name: "کیف", icon: "🎒", dropZone: "chair" },
+          { id: "toy", name: "اسباب‌بازی", icon: "🧸", dropZone: "chair" },
+          { id: "shoes", name: "کفش", icon: "👟", dropZone: "chair" },
+          // For sink (3 items)
+          { id: "glass", name: "لیوان آب", icon: "🥛", dropZone: "sink" },
+          { id: "cup", name: "فنجان", icon: "☕", dropZone: "sink" },
+          { id: "plate", name: "طبق", icon: "🍽️", dropZone: "sink" },
+          // For shelf (3 items)
+          { id: "books", name: "کتاب‌ها", icon: "📚", dropZone: "shelf" },
+          { id: "notebook", name: "دفترچه", icon: "📓", dropZone: "shelf" },
+          { id: "photo", name: "عکس", icon: "🖼️", dropZone: "shelf" }
+        ];
+        
+        dropZones = [
+          { id: "drawer", name: "کشو", icon: "🗄️" },
+          { id: "bin", name: "سطل آشغال", icon: "🗑️" },
+          { id: "chair", name: "صندلی", icon: "🪑" },
+          { id: "sink", name: "سینک", icon: "🚰" },
+          { id: "shelf", name: "قفسه", icon: "📚" }
+        ];
+      }
+      
+      document.getElementById('time').textContent = timeLeft;
+      
+      // Shuffle items for variety
+      const shuffledItems = shuffleArray(items);
+      
+      // Create items bar
+      shuffledItems.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'item';
+        itemEl.id = `item-${item.id}`;
+        itemEl.setAttribute('draggable', 'true');
+        itemEl.dataset.id = item.id;
+        itemEl.innerHTML = `
+          <div class="item-icon">${item.icon}</div>
+          <div class="item-name">${item.name}</div>
+        `;
+        
+        document.getElementById('items-bar').appendChild(itemEl);
+        
+        // Add drag events
+        itemEl.addEventListener('dragstart', dragStart);
+        itemEl.addEventListener('dragend', dragEnd);
+        
+        // Touch events for mobile
+        itemEl.addEventListener('touchstart', touchStart);
+        itemEl.addEventListener('touchend', touchEnd);
+      });
+      
+      // Create drop zones
+      createDropZones(stage);
+      
+      // Start timer
+      clearInterval(timer);
+      timer = setInterval(updateTimer, 1000);
+    }
+    
+    function createDropZones(stage) {
+      const room = document.getElementById('room');
+      
+      // For stage 1, show icons; for others, don't
+      dropZones.forEach(zone => {
+        const zoneEl = document.createElement('div');
+        zoneEl.className = 'drop-zone';
+        zoneEl.id = `zone-${zone.id}`;
+        zoneEl.dataset.id = zone.id;
+        
+        let innerHTML = '';
+        if (stage === 1) {
+          innerHTML += `<div class="drop-zone-icon">${zone.icon}</div>`;
+        }
+        innerHTML += `<div class="drop-zone-label">${zone.name}</div>`;
+        zoneEl.innerHTML = innerHTML;
+        
+        room.appendChild(zoneEl);
+        
+        // Add drop events
+        zoneEl.addEventListener('dragover', dragOver);
+        zoneEl.addEventListener('dragenter', dragEnter);
+        zoneEl.addEventListener('dragleave', dragLeave);
+        zoneEl.addEventListener('drop', drop);
+        
+        // Touch events for mobile
+        zoneEl.addEventListener('touchmove', touchMove, { passive: false });
+        zoneEl.addEventListener('touchend', touchDrop);
+      });
+    }
+    
+    // Drag events
+    function dragStart(e) {
+      if (!gameActive) return;
+      
+      e.dataTransfer.setData('text/plain', e.target.dataset.id);
+      setTimeout(() => {
+        e.target.classList.add('dragging');
+      }, 0);
+    }
+    
+    function dragEnd(e) {
+      e.target.classList.remove('dragging');
+    }
+    
+    function dragOver(e) {
+      if (!gameActive) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    function dragEnter(e) {
+      if (!gameActive) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      if (!e.target.classList.contains('correct')) {
+        e.target.classList.add('hover');
+      }
+    }
+    
+    function dragLeave(e) {
+      e.target.classList.remove('hover');
+    }
+    
+    function drop(e) {
+      if (!gameActive) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const id = e.dataTransfer.getData('text/plain');
+      const draggedItem = document.getElementById(`item-${id}`);
+      const dropZoneId = e.target.dataset.id || e.target.parentElement.dataset.id;
+      const correctZone = items.find(item => item.id === id)?.dropZone;
+      
+      if (dropZoneId === correctZone) {
+        // Correct drop
+        playSound('success');
+        
+        // Mark as correct
+        draggedItem.classList.add('correct');
+        draggedItem.draggable = false;
+        
+        // Move to drop zone
+        const dropZone = document.getElementById(`zone-${dropZoneId}`);
+        dropZone.appendChild(draggedItem);
+        dropZone.classList.add('correct');
+        
+        correctItems++;
+        checkStageCompletion();
+      } else {
+        showError();
+      }
+      
+      return false;
+    }
+    
+    // Touch events for mobile
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let draggedElement = null;
+    
+    function touchStart(e) {
+      if (!gameActive || e.touches.length > 1) return;
+      
+      e.preventDefault();
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      draggedElement = e.target;
+      
+      // Add dragging class
+      setTimeout(() => {
+        if (draggedElement) {
+          draggedElement.classList.add('dragging');
+          draggedElement.style.left = touch.clientX - 40 + 'px';
+          draggedElement.style.top = touch.clientY - 40 + 'px';
+        }
+      }, 0);
+    }
+    
+    function touchMove(e) {
+      if (!draggedElement) return;
+      
+      e.preventDefault();
+      const touch = e.touches[0];
+      
+      // Update position for dragging element
+      draggedElement.style.left = touch.clientX - 40 + 'px';
+      draggedElement.style.top = touch.clientY - 40 + 'px';
+    }
+    
+    function touchEnd(e) {
+      if (!draggedElement) return;
+      
+      draggedElement.classList.remove('dragging');
+      draggedElement.style.left = '';
+      draggedElement.style.top = '';
+      draggedElement.style.position = '';
+      draggedElement = null;
+    }
+    
+    function touchDrop(e) {
+      if (!gameActive || !draggedElement) return;
+      
+      e.preventDefault();
+      const id = draggedElement.dataset.id;
+      const dropZoneId = e.target.dataset.id || e.target.parentElement.dataset.id;
+      const correctZone = items.find(item => item.id === id)?.dropZone;
+      
+      if (dropZoneId === correctZone) {
+        // Correct drop
+        playSound('success');
+        
+        // Mark as correct
+        draggedElement.classList.add('correct');
+        draggedElement.draggable = false;
+        
+        // Move to drop zone
+        const dropZone = document.getElementById(`zone-${dropZoneId}`);
+        dropZone.appendChild(draggedElement);
+        dropZone.classList.add('correct');
+        
+        correctItems++;
+        checkStageCompletion();
+      } else {
+        showError();
+        returnToBar(draggedElement);
+      }
+      
+      draggedElement = null;
+    }
+    
+    function returnToBar(element) {
+      const itemsBar = document.getElementById('items-bar');
+      itemsBar.appendChild(element);
+    }
+    
+    function showError() {
+      playSound('error');
+      
+      // Show notification
+      const notification = document.getElementById('notification');
+      notification.classList.remove('hidden');
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+        // Hide after animation completes
+        setTimeout(() => {
+          notification.classList.add('hidden');
+        }, 300);
+      }, 2000);
+      
+      // Shake room
+      const room = document.getElementById('room');
+      room.classList.add('shake');
+      setTimeout(() => {
+        room.classList.remove('shake');
+      }, 500);
+    }
+    
+    function updateTimer() {
+      if (!gameActive) return;
+      
+      timeLeft--;
+      document.getElementById('time').textContent = timeLeft;
+      
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        gameActive = false;
+        showGameOver();
+      }
+    }
+    
+    function checkStageCompletion() {
+      if (!gameActive) return;
+      
+      if (correctItems >= totalItems) {
+        clearInterval(timer);
+        if (currentStage < 3) {
+          setTimeout(() => {
+            startStage(currentStage + 1);
+          }, 1500);
+        } else {
+          gameActive = false;
+          showVictory();
+        }
+      }
+    }
+    
+    function showGameOver() {
+      document.getElementById('game-over-screen').classList.remove('hidden');
+    }
+    
+    function showVictory() {
+      // Show victory screen
+      const victoryScreen = document.getElementById('victory-screen');
+      victoryScreen.classList.remove('hidden');
+      
+      // Start confetti
+      startConfetti();
+    }
+    
+    function startConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas to full window size
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      // Confetti particles
+      const particles = [];
+      const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+      
+      // Create particles
+      for (let i = 0; i < 150; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: -10 - Math.random() * 100,
+          size: Math.random() * 5 + 2,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          speed: Math.random() * 3 + 2,
+          angle: Math.random() * Math.PI * 2,
+          rotation: Math.random() * 0.1 - 0.05,
+          rotationSpeed: Math.random() * 0.05 - 0.025
+        });
+      }
+      
+      function draw() {
+        // Clear canvas with semi-transparent black for trail effect
+        ctx.fillStyle = 'rgba(12, 12, 12, 0.1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        particles.forEach(p => {
+          // Update position
+          p.y += p.speed;
+          p.x += Math.sin(p.angle) * 2;
+          p.angle += p.rotationSpeed;
+          p.rotation += p.rotationSpeed;
+          
+          // Reset if off screen
+          if (p.y > canvas.height + 20) {
+            p.y = -10 - Math.random() * 100;
+            p.x = Math.random() * canvas.width;
+          }
+          
+          // Draw particle
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rotation);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+          ctx.restore();
+        });
+        
+        if (document.getElementById('victory-screen').classList.contains('hidden')) {
+          return;
+        }
+        
+        requestAnimationFrame(draw);
+      }
+      
+      draw();
+    }
+    
+    // Handle window resize for confetti canvas
+    window.addEventListener('resize', () => {
+      const canvas = document.getElementById('confetti-canvas');
+      if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+    });
+  </script>
+</body>
+</html>
+
